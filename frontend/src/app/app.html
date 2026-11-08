@@ -1,0 +1,25 @@
+<a class="skip-link" href="#main-content">Ir para o conteúdo</a>
+<aside class="app-sidebar" aria-label="Menu principal">
+  <a class="brand" routerLink="/produtos" aria-label="Korp, página de produtos"
+    >korp<span class="brand-dot">.</span></a
+  >
+  <p class="brand-description">Estoque e faturamento</p>
+  <nav>
+    <a routerLink="/produtos" routerLinkActive="active" ariaCurrentWhenActive="page">
+      <span class="nav-number">01</span><app-icon name="box" /><span>Produtos</span
+      ><app-icon class="nav-arrow" name="arrow-right" />
+    </a>
+    <a routerLink="/notas" routerLinkActive="active" ariaCurrentWhenActive="page">
+      <span class="nav-number">02</span><app-icon name="file" /><span>Notas</span
+      ><app-icon class="nav-arrow" name="arrow-right" />
+    </a>
+  </nav>
+  <a class="sidebar-action" routerLink="/notas/nova"><app-icon name="plus" /> Criar uma nota</a>
+</aside>
+<div class="app-workspace">
+  <header class="app-topbar">
+    <span>{{ section() }}</span
+    ><time [attr.datetime]="today.toISOString()">{{ today | date: 'dd MMM yyyy' }}</time>
+  </header>
+  <main id="main-content" class="app-content" tabindex="-1"><router-outlet /></main>
+</div>

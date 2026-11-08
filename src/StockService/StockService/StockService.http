@@ -1,0 +1,86 @@
+@StockService_HostAddress = http://localhost:5213
+@productId = 00000000-0000-0000-0000-000000000000
+@rowVersion = AAAAAAAAAAA=
+@invoiceId = d41d02a2-e590-46cc-9c4d-b1e6717c522c
+
+### Saúde do processo / do banco
+GET {{StockService_HostAddress}}/health/live
+
+###
+GET {{StockService_HostAddress}}/health/ready
+
+### Sugestão opcional de descrição: exige OpenRouter:ApiKey no backend, não salva produto.
+# Envie apenas dados de produto sem informações pessoais ou confidenciais.
+# Entrada e saída: description de 1 a 200 caracteres. Revise antes de salvar no cadastro.
+POST {{StockService_HostAddress}}/api/products/improve-description
+Content-Type: application/json
+Accept: application/json
+
+{
+  "description": "parafuso aco inox 10mm caixa com 100 unidades"
+}
+
+### Cadastro: saldo inicial gera uma movimentação de entrada
+POST {{StockService_HostAddress}}/api/products
+Content-Type: application/json
+
+{
+  "code": "DEMO-001",
+  "description": "Produto de demonstração",
+  "balance": 10,
+  "minimumStock": 2,
+  "category": "Demonstração"
+}
+
+### Busca paginada
+GET {{StockService_HostAddress}}/api/products?search=DEMO&page=1&pageSize=20
+Accept: application/json
+
+### Substitua productId e rowVersion acima pelos valores retornados na consulta
+GET {{StockService_HostAddress}}/api/products/{{productId}}
+
+### Lookup usado pelo Billing (repita ids para outros produtos)
+GET {{StockService_HostAddress}}/api/products/lookup?ids={{productId}}
+
+### Edição do cadastro: saldo somente na rota de ajustes
+PUT {{StockService_HostAddress}}/api/products/{{productId}}
+Content-Type: application/json
+
+{
+  "code": "DEMO-001",
+  "description": "Produto de demonstração atualizado",
+  "minimumStock": 3,
+  "category": "Demonstração",
+  "rowVersion": "{{rowVersion}}"
+}
+
+### Ajuste para um saldo alvo. Use o rowVersion atualizado.
+POST {{StockService_HostAddress}}/api/products/{{productId}}/adjustments
+Content-Type: application/json
+
+{
+  "balance": 20,
+  "reason": "Conferência de inventário",
+  "rowVersion": "{{rowVersion}}"
+}
+
+### Histórico auditável
+GET {{StockService_HostAddress}}/api/products/{{productId}}/movements?page=1&pageSize=20
+
+### Contrato interno de baixa: chamado pelo Billing durante a impressão.
+# Execute diretamente somente para testar o Stock isoladamente.
+# Repetir a mesma nota e os mesmos itens retorna o sucesso persistido, sem nova baixa.
+POST {{StockService_HostAddress}}/api/stock/deduct
+Content-Type: application/json
+
+{
+  "invoiceId": "{{invoiceId}}",
+  "items": [
+    { "productId": "{{productId}}", "quantity": 2 }
+  ]
+}
+
+### Consultar o resultado persistido de uma nota
+GET {{StockService_HostAddress}}/api/stock/deductions/{{invoiceId}}
+
+###

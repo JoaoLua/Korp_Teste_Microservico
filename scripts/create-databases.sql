@@ -1,0 +1,14 @@
+USE master;
+GO
+
+IF DB_ID(N'StockDb') IS NULL
+BEGIN
+    EXEC (N'CREATE DATABASE StockDb;');
+END;
+GO
+
+IF DB_ID(N'BillingDb') IS NULL
+BEGIN
+    EXEC (N'CREATE DATABASE BillingDb;');
+END;
+GO

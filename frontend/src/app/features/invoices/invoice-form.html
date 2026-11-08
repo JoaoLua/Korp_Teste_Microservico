@@ -1,0 +1,217 @@
+<div class="page">
+  <a class="back-link" routerLink="/notas"><app-icon name="arrow-left" /> Notas fiscais</a>
+  <app-page-header
+    title="Nova nota fiscal"
+    description="Selecione os produtos e informe a quantidade de cada um."
+    [count]="items.length"
+    countLabel="produtos na nota"
+  />
+
+  <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
+    <div class="compose-grid">
+      <section class="panel catalog-panel" aria-labelledby="catalog-title">
+        <div class="section-heading catalog-heading">
+          <div>
+            <h2 id="catalog-title">Produtos disponíveis</h2>
+            <p class="muted">Busque pelo código ou pela descrição.</p>
+          </div>
+        </div>
+        <div class="catalog-search">
+          <label class="visually-hidden" for="product-search">Buscar produtos</label>
+          <div class="search-field">
+            <app-icon name="search" /><input
+              id="product-search"
+              class="input"
+              type="search"
+              [formControl]="search"
+              placeholder="Buscar produto"
+              [readOnly]="saving() || creationUncertain()"
+            />
+          </div>
+        </div>
+
+        @if (productsLoading()) {
+          <app-state
+            kind="loading"
+            title="Carregando produtos"
+            message="Consultando os produtos cadastrados."
+          />
+        } @else if (productsError()) {
+          <app-state kind="error" title="Produtos indisponíveis" [message]="productsError()">
+            <button class="button button--secondary" type="button" (click)="loadProducts()">
+              <app-icon name="refresh" /> Tentar novamente
+            </button>
+          </app-state>
+        } @else if (products().length === 0) {
+          <app-state
+            kind="empty"
+            title="Nenhum produto encontrado"
+            [message]="
+              search.value.trim()
+                ? 'Tente outro código ou descrição.'
+                : 'Cadastre produtos para incluí-los em uma nota fiscal.'
+            "
+          >
+            @if (!search.value.trim()) {
+              <a class="button button--secondary" routerLink="/produtos/novo">Cadastrar produto</a>
+            }
+          </app-state>
+        } @else {
+          <ul class="catalog-list" aria-label="Resultado da busca de produtos">
+            @for (product of products(); track product.id) {
+              <li class="catalog-item">
+                <div class="catalog-product">
+                  <span class="code">{{ product.code }}</span>
+                  <h3>{{ product.description }}</h3>
+                  <span class="muted">Saldo: {{ product.balance | number: '1.0-0' }}</span>
+                </div>
+                <button
+                  class="icon-button add-product"
+                  type="button"
+                  (click)="addProduct(product)"
+                  [disabled]="
+                    isSelected(product.id) || items.length >= 100 || saving() || creationUncertain()
+                  "
+                  [attr.aria-label]="
+                    isSelected(product.id)
+                      ? product.description + ' já está na nota'
+                      : 'Adicionar ' + product.description
+                  "
+                  [title]="isSelected(product.id) ? 'Produto adicionado' : 'Adicionar à nota'"
+                >
+                  <app-icon [name]="isSelected(product.id) ? 'check' : 'plus'" />
+                </button>
+              </li>
+            }
+          </ul>
+          <app-pagination
+            [page]="productsPage()"
+            [pageSize]="productsPageSize()"
+            [total]="productsTotal()"
+            [disabled]="productsLoading() || saving() || creationUncertain()"
+            (pageChange)="changeProductPage($event)"
+          />
+        }
+      </section>
+
+      <section class="panel selected-panel" aria-labelledby="selected-title">
+        <div class="section-heading selected-heading">
+          <h2 id="selected-title">Itens da nota</h2>
+          <span class="muted">{{ items.length }} / 100 produtos</span>
+        </div>
+        @if (items.length === 0) {
+          <div class="selection-empty">
+            <app-icon name="file" />
+            <h3>Adicione o primeiro produto</h3>
+            <p>Use o botão de adicionar na lista de produtos para montar a nota.</p>
+          </div>
+        }
+        <div class="selected-list" formArrayName="items">
+          @for (item of items.controls; track item; let index = $index) {
+            @let product = selectedProducts()[item.controls.productId.value];
+            <div class="selected-item" [formGroupName]="index">
+              <span class="item-position" aria-hidden="true">{{
+                index + 1 | number: '2.0-0'
+              }}</span>
+              <div class="selected-product">
+                <span class="code">{{ product.code }}</span>
+                <h3>{{ product.description }}</h3>
+                <p class="muted">Saldo consultado: {{ product.balance | number: '1.0-0' }}</p>
+              </div>
+              <div class="field quantity-field">
+                <label [for]="'quantity-' + index">Quantidade</label>
+                <input
+                  class="input numeric"
+                  type="number"
+                  [id]="'quantity-' + index"
+                  formControlName="quantity"
+                  min="1"
+                  [max]="maxQuantity"
+                  step="1"
+                  inputmode="numeric"
+                  [readOnly]="saving() || creationUncertain()"
+                  [attr.aria-label]="'Quantidade de ' + product.description"
+                  [attr.aria-invalid]="
+                    item.controls.quantity.invalid &&
+                    (item.controls.quantity.touched || submitted())
+                  "
+                  [attr.aria-describedby]="
+                    item.controls.quantity.invalid &&
+                    (item.controls.quantity.touched || submitted())
+                      ? 'quantity-error-' + index
+                      : null
+                  "
+                />
+              </div>
+              <button
+                class="icon-button remove-product"
+                type="button"
+                (click)="removeProduct(index)"
+                [disabled]="saving() || creationUncertain()"
+                [attr.aria-label]="'Remover ' + product.description"
+                title="Remover produto"
+              >
+                <app-icon name="trash" />
+              </button>
+              @if (
+                item.controls.quantity.invalid && (item.controls.quantity.touched || submitted())
+              ) {
+                <span class="field-error quantity-error" [id]="'quantity-error-' + index"
+                  >Informe uma quantidade inteira de 1 a {{ maxQuantity | number: '1.0-0' }}.</span
+                >
+              }
+            </div>
+          }
+        </div>
+        <div class="note-rules">
+          <p>
+            A numeração é gerada automaticamente. A nota será criada com status
+            <strong>Aberta</strong>.
+          </p>
+          <p>
+            O estoque será conferido e descontado somente na impressão. O saldo exibido aqui é
+            informativo.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    @if (submitted() && items.length === 0) {
+      <p class="notice notice--error" role="alert">
+        Adicione pelo menos um produto antes de criar a nota.
+      </p>
+    }
+    @if (items.length >= 100) {
+      <p class="notice">
+        A nota atingiu o limite de 100 produtos. Você pode ajustar as quantidades dos itens.
+      </p>
+    }
+    @if (error()) {
+      <p class="notice notice--error" role="alert">{{ error() }}</p>
+    }
+    @if (creationUncertain()) {
+      <div class="notice notice--error" role="alert">
+        <p>
+          Não foi possível confirmar se a nota foi criada. Consulte a lista de notas antes de
+          iniciar um novo cadastro, para evitar duplicidade.
+        </p>
+        <a class="button button--secondary" routerLink="/notas"
+          >Consultar notas <app-icon name="arrow-right"
+        /></a>
+      </div>
+    }
+    <div class="form-actions">
+      @if (!saving()) {
+        <a class="button button--quiet" routerLink="/notas">Cancelar</a>
+      }
+      <button
+        class="button button--primary"
+        type="submit"
+        [disabled]="saving() || creationUncertain()"
+      >
+        <app-icon [name]="saving() ? 'refresh' : 'check'" />
+        {{ saving() ? 'Criando nota…' : 'Criar nota fiscal' }}
+      </button>
+    </div>
+  </form>
+</div>

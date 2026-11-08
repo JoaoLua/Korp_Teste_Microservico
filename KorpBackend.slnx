@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/StockService/">
+    <Project Path="src/StockService/StockService.Domain/StockService.Domain.csproj" />
+    <Project Path="src/StockService/StockService.Application/StockService.Application.csproj" />
+    <Project Path="src/StockService/StockService.Infrastructure/StockService.Infrastructure.csproj" />
+    <Project Path="src/StockService/StockService/StockService.csproj" />
+  </Folder>
+  <Folder Name="/BillingService/">
+    <Project Path="src/BillingService/BillingService.Domain/BillingService.Domain.csproj" />
+    <Project Path="src/BillingService/BillingService.Application/BillingService.Application.csproj" />
+    <Project Path="src/BillingService/BillingService.Infrastructure/BillingService.Infrastructure.csproj" />
+    <Project Path="src/BillingService/BillingService/BillingService.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/StockService.UnitTests/StockService.UnitTests.csproj" />
+    <Project Path="tests/BillingService.UnitTests/BillingService.UnitTests.csproj" />
+  </Folder>
+</Solution>

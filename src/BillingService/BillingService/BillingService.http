@@ -1,0 +1,36 @@
+@BillingService_HostAddress = http://localhost:5048
+@productId = 00000000-0000-0000-0000-000000000000
+@invoiceId = 00000000-0000-0000-0000-000000000000
+
+GET {{BillingService_HostAddress}}/openapi/v1.json
+Accept: application/json
+
+###
+
+GET {{BillingService_HostAddress}}/health/ready
+
+###
+
+GET {{BillingService_HostAddress}}/api/invoices?page=1&pageSize=20&status=Open
+Accept: application/json
+
+### Substitua productId pelo produto cadastrado no StockService.
+
+POST {{BillingService_HostAddress}}/api/invoices
+Content-Type: application/json
+X-Correlation-ID: exemplo-nota-001
+
+{
+  "items": [
+    { "productId": "{{productId}}", "quantity": 2 }
+  ]
+}
+
+### Substitua invoiceId pelo id da resposta anterior.
+
+GET {{BillingService_HostAddress}}/api/invoices/{{invoiceId}}
+
+### Sucesso retorna 200 com a nota fechada. Em falha, consulte a nota e repita se estiver aberta.
+
+POST {{BillingService_HostAddress}}/api/invoices/{{invoiceId}}/print
+X-Correlation-ID: exemplo-impressao-001

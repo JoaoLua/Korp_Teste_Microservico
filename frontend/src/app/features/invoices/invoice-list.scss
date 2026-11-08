@@ -1,0 +1,59 @@
+:host {
+  display: block;
+}
+
+.invoice-filters {
+  align-items: start;
+  gap: 1rem;
+}
+.number-filter {
+  flex: 1;
+  max-width: 22rem;
+}
+.status-filter {
+  width: 12rem;
+}
+.filter-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 1.65rem;
+}
+.invoice-number {
+  color: #002fa7;
+  font-size: 1.15rem;
+  font-weight: 650;
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+.invoice-number:hover {
+  text-decoration: underline;
+}
+.date-cell span {
+  display: block;
+}
+.date-cell .muted {
+  font-size: 0.78rem;
+  margin-top: 0.25rem;
+}
+.row-action {
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .invoice-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .number-filter,
+  .status-filter {
+    width: auto;
+    max-width: none;
+  }
+  .filter-actions {
+    grid-column: 1 / -1;
+    padding-top: 0;
+  }
+  .data-table {
+    min-width: 38rem;
+  }
+}

@@ -1,0 +1,119 @@
+<section class="page">
+  <app-page-header
+    title="Produtos"
+    description="Consulte o catálogo e acompanhe os saldos em estoque."
+    [count]="total()"
+    [countLabel]="activeSearch() ? 'produtos encontrados' : 'produtos cadastrados'"
+  >
+    <div page-actions>
+      <a class="button button--primary" routerLink="/produtos/novo"
+        ><app-icon name="plus" /> Novo produto</a
+      >
+    </div>
+  </app-page-header>
+
+  <div class="toolbar">
+    <div class="search-field product-search">
+      <app-icon name="search" />
+      <input
+        class="input"
+        type="search"
+        [formControl]="search"
+        maxlength="200"
+        aria-label="Buscar por código ou descrição"
+        placeholder="Buscar por código ou descrição"
+      />
+    </div>
+    <button class="button button--quiet" type="button" (click)="load()" [disabled]="loading()">
+      <app-icon name="refresh" /> Atualizar
+    </button>
+  </div>
+
+  @if (loading()) {
+    <app-state
+      kind="loading"
+      title="Carregando produtos"
+      message="Consultando os saldos disponíveis."
+    />
+  } @else if (error()) {
+    <app-state kind="error" title="Produtos indisponíveis" [message]="error()!">
+      <button class="button button--secondary" type="button" (click)="load()">
+        Tentar novamente
+      </button>
+    </app-state>
+  } @else if (products().length === 0) {
+    <app-state
+      kind="empty"
+      [title]="activeSearch() ? 'Nenhum produto encontrado' : 'Seu catálogo começa aqui'"
+      [message]="
+        activeSearch()
+          ? 'Tente outro código ou uma parte da descrição.'
+          : 'Cadastre o primeiro produto para começar a criar suas notas.'
+      "
+    >
+      @if (activeSearch()) {
+        <button class="button button--secondary" type="button" (click)="clearSearch()">
+          Limpar busca
+        </button>
+      } @else {
+        <a class="button button--primary" routerLink="/produtos/novo"
+          ><app-icon name="plus" /> Cadastrar produto</a
+        >
+      }
+    </app-state>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <caption class="sr-only">
+          Produtos cadastrados e saldo atual
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Código</th>
+            <th scope="col">Descrição</th>
+            <th scope="col" class="numeric">Saldo em estoque</th>
+            <th scope="col"><span class="sr-only">Ações</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (product of products(); track product.id) {
+            <tr>
+              <td class="code">
+                <a [routerLink]="['/produtos', product.id, 'editar']">{{ product.code }}</a>
+              </td>
+              <td>
+                <a class="product-description" [routerLink]="['/produtos', product.id, 'editar']">{{
+                  product.description
+                }}</a>
+              </td>
+              <td class="numeric">
+                <span class="stock-number" [class.stock-number--zero]="product.balance === 0">{{
+                  product.balance | number
+                }}</span
+                ><span class="unit-label">un.</span>
+              </td>
+              <td class="row-action">
+                <a
+                  class="icon-button"
+                  [routerLink]="['/produtos', product.id, 'editar']"
+                  [attr.aria-label]="'Editar ' + product.description"
+                  ><app-icon name="arrow-right"
+                /></a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (total() !== null && total()! > 0 && !error()) {
+    <app-pagination
+      [page]="page()"
+      [pageSize]="pageSize()"
+      [total]="total()!"
+      [disabled]="loading()"
+      (pageChange)="changePage($event)"
+    />
+  }
+</section>

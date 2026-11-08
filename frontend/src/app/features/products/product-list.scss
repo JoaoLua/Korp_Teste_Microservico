@@ -1,0 +1,31 @@
+.product-search {
+  width: min(100%, 460px);
+}
+.product-description {
+  color: inherit;
+  text-decoration: none;
+}
+.product-description:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.stock-number {
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.stock-number--zero {
+  color: var(--text-muted, #62626e);
+}
+.unit-label {
+  margin-left: 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted, #62626e);
+}
+.row-action {
+  width: 60px;
+  text-align: right;
+}
+.data-table {
+  min-width: 570px;
+}

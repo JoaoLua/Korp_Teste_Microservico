@@ -1,0 +1,146 @@
+<div class="page">
+  <app-page-header
+    title="Notas fiscais"
+    description="Crie notas, acompanhe o status e conclua a impressão."
+    [count]="loading() || error() ? null : total()"
+    [countLabel]="filtered() ? 'notas encontradas' : 'notas cadastradas'"
+  >
+    <div page-actions>
+      <a class="button button--primary" routerLink="/notas/nova"
+        ><app-icon name="plus" /> Nova nota</a
+      >
+    </div>
+  </app-page-header>
+
+  <form
+    class="toolbar invoice-filters"
+    [formGroup]="filters"
+    (ngSubmit)="applyFilters()"
+    aria-label="Filtrar notas fiscais"
+  >
+    <div class="field number-filter">
+      <label for="invoice-number">Número da nota</label>
+      <input
+        id="invoice-number"
+        class="input"
+        type="number"
+        min="1"
+        max="9007199254740991"
+        step="1"
+        inputmode="numeric"
+        formControlName="number"
+        placeholder="Todos os números"
+        [attr.aria-invalid]="filters.controls.number.invalid && filters.controls.number.touched"
+        [attr.aria-describedby]="
+          filters.controls.number.invalid && filters.controls.number.touched ? 'number-error' : null
+        "
+      />
+      @if (filters.controls.number.invalid && filters.controls.number.touched) {
+        <span id="number-error" class="field-error"
+          >Informe um número inteiro positivo válido.</span
+        >
+      }
+    </div>
+    <div class="field status-filter">
+      <label for="invoice-status">Status</label>
+      <select id="invoice-status" class="input" formControlName="status">
+        <option value="">Todos os status</option>
+        <option value="Open">Aberta</option>
+        <option value="Closed">Fechada</option>
+      </select>
+    </div>
+    <div class="filter-actions">
+      <button class="button button--secondary" type="submit">
+        <app-icon name="search" /> Filtrar
+      </button>
+      @if (filtered()) {
+        <button class="button button--quiet" type="button" (click)="clearFilters()">Limpar</button>
+      }
+    </div>
+  </form>
+
+  @if (loading()) {
+    <app-state
+      kind="loading"
+      title="Carregando notas"
+      message="Consultando as notas fiscais cadastradas."
+    />
+  } @else if (error()) {
+    <app-state kind="error" title="Não foi possível carregar as notas" [message]="error()">
+      <button class="button button--secondary" type="button" (click)="reload()">
+        <app-icon name="refresh" /> Tentar novamente
+      </button>
+    </app-state>
+  } @else if (invoices().length === 0) {
+    <app-state
+      kind="empty"
+      [title]="filtered() ? 'Nenhuma nota encontrada' : 'Sua primeira nota começa aqui'"
+      [message]="
+        filtered()
+          ? 'Revise o número ou o status utilizado na busca.'
+          : 'Selecione os produtos e suas quantidades para criar uma nota fiscal.'
+      "
+    >
+      @if (filtered()) {
+        <button class="button button--secondary" type="button" (click)="clearFilters()">
+          Limpar filtros
+        </button>
+      } @else {
+        <a class="button button--primary" routerLink="/notas/nova"
+          ><app-icon name="plus" /> Criar nota fiscal</a
+        >
+      }
+    </app-state>
+  } @else {
+    <div class="panel">
+      <div class="table-wrap">
+        <table class="data-table">
+          <caption class="visually-hidden">
+            Notas fiscais cadastradas
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Nota</th>
+              <th scope="col">Criada em</th>
+              <th scope="col">Status</th>
+              <th scope="col" class="numeric">Produtos</th>
+              <th scope="col"><span class="visually-hidden">Ações</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (invoice of invoices(); track invoice.id) {
+              <tr>
+                <td>
+                  <a class="invoice-number" [routerLink]="['/notas', invoice.id]">{{
+                    invoice.number | number: '1.0-0'
+                  }}</a>
+                </td>
+                <td class="date-cell">
+                  <span>{{ invoice.createdAt | date: 'dd/MM/yyyy' }}</span
+                  ><span class="muted">{{ invoice.createdAt | date: 'HH:mm' }}</span>
+                </td>
+                <td><app-invoice-status [status]="invoice.status" /></td>
+                <td class="numeric">{{ invoice.items.length | number: '1.0-0' }}</td>
+                <td class="row-action">
+                  <a
+                    class="button button--quiet"
+                    [routerLink]="['/notas', invoice.id]"
+                    [attr.aria-label]="'Ver nota ' + invoice.number"
+                    >Ver nota <app-icon name="arrow-right"
+                  /></a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-pagination
+        [page]="page()"
+        [pageSize]="pageSize()"
+        [total]="total()"
+        [disabled]="loading()"
+        (pageChange)="changePage($event)"
+      />
+    </div>
+  }
+</div>

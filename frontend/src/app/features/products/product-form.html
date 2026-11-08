@@ -1,0 +1,256 @@
+<section class="page">
+  <a class="back-link" routerLink="/produtos"><app-icon name="arrow-left" /> Produtos</a>
+  <app-page-header
+    [title]="id ? 'Editar produto' : 'Novo produto'"
+    [description]="
+      id
+        ? 'Atualize os dados do produto e consulte o saldo atual.'
+        : 'Informe o código, a descrição e o saldo inicial em estoque.'
+    "
+  />
+
+  @if (loading()) {
+    <app-state
+      kind="loading"
+      title="Carregando produto"
+      message="Buscando os dados mais recentes."
+    />
+  } @else if (loadError()) {
+    <app-state kind="error" title="Produto indisponível" [message]="loadError()!">
+      <button class="button button--secondary" type="button" (click)="reload()">
+        Tentar novamente
+      </button>
+    </app-state>
+  } @else {
+    @if (error()) {
+      <div class="notice notice--error" role="alert">
+        <app-icon name="alert" />
+        <div>
+          <p>{{ error() }}</p>
+          @if (needsReload()) {
+            <button class="button button--secondary" type="button" (click)="reload()">
+              Recarregar produto
+            </button>
+            <p class="reload-hint">
+              Ao recarregar, os campos serão substituídos pelos dados salvos.
+            </p>
+          } @else if (!id) {
+            <a routerLink="/produtos">Consultar produtos</a>
+          }
+        </div>
+      </div>
+    }
+    @if (success()) {
+      <div class="notice notice--success" role="status">
+        <app-icon name="check" />
+        <p>{{ success() }}</p>
+      </div>
+    }
+
+    <div class="product-layout">
+      <form class="panel product-data" [formGroup]="form" (ngSubmit)="save()">
+        <h2 class="section-heading">Dados do produto</h2>
+        <fieldset [disabled]="saving() || adjusting() || needsReload() || creationUncertain()">
+          <div class="form-grid">
+            <div class="field code-field">
+              <label for="product-code"
+                >Código <span class="required-hint">obrigatório</span></label
+              >
+              <input
+                id="product-code"
+                class="input"
+                formControlName="code"
+                maxlength="50"
+                autocomplete="off"
+                [attr.aria-invalid]="!!fieldError('code')"
+                aria-describedby="product-code-error"
+              />
+              <p id="product-code-error" class="field-error">{{ fieldError('code') }}</p>
+            </div>
+            <div class="field description-field">
+              <label for="product-description"
+                >Descrição <span class="required-hint">obrigatória</span></label
+              >
+              <input
+                id="product-description"
+                class="input"
+                formControlName="description"
+                maxlength="200"
+                autocomplete="off"
+                [attr.aria-invalid]="!!fieldError('description')"
+                aria-describedby="product-description-error"
+              />
+              <p id="product-description-error" class="field-error">
+                {{ fieldError('description') }}
+              </p>
+              <div class="description-assistant" [attr.aria-busy]="improvingDescription()">
+                <button
+                  class="button button--secondary"
+                  type="button"
+                  (click)="improveDescription()"
+                  [disabled]="improvingDescription() || form.controls.description.invalid"
+                >
+                  {{ improvingDescription() ? 'Melhorando descrição...' : 'Melhorar descrição' }}
+                </button>
+                <p class="field-hint">Revise a sugestão antes de salvar o produto.</p>
+                <p class="field-hint">
+                  A descrição será enviada ao OpenRouter/NVIDIA. Não inclua dados pessoais ou confidenciais.
+                </p>
+                <div aria-live="polite" aria-atomic="true">
+                  @if (improvingDescription()) {
+                    <p class="field-hint">Gerando uma sugestão para o texto informado.</p>
+                  }
+                  @if (descriptionSuggestion(); as suggestion) {
+                    <div class="description-suggestion">
+                      <h3>Sugestão de descrição</h3>
+                      <p class="suggestion-text">{{ suggestion }}</p>
+                      <div class="suggestion-actions">
+                        <button
+                          class="button button--secondary"
+                          type="button"
+                          (click)="useDescriptionSuggestion()"
+                        >
+                          Usar sugestão
+                        </button>
+                        <button
+                          class="button button--quiet"
+                          type="button"
+                          (click)="discardDescriptionSuggestion()"
+                        >
+                          Descartar
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+                @if (descriptionImprovementError()) {
+                  <p class="field-error improvement-error" role="alert">
+                    {{ descriptionImprovementError() }}
+                  </p>
+                }
+              </div>
+            </div>
+            @if (!id) {
+              <div class="field balance-field">
+                <label for="product-balance"
+                  >Saldo inicial <span class="required-hint">obrigatório</span></label
+                >
+                <input
+                  id="product-balance"
+                  class="input"
+                  formControlName="balance"
+                  type="number"
+                  min="0"
+                  [max]="integerMax"
+                  step="1"
+                  inputmode="numeric"
+                  [attr.aria-invalid]="!!fieldError('balance')"
+                  aria-describedby="product-balance-hint product-balance-error"
+                />
+                <p id="product-balance-hint" class="field-hint">
+                  Quantidade de unidades disponíveis em estoque.
+                </p>
+                <p id="product-balance-error" class="field-error">{{ fieldError('balance') }}</p>
+              </div>
+            }
+          </div>
+          <div class="form-actions">
+            <button
+              class="button button--primary"
+              type="submit"
+              [disabled]="saving() || adjusting() || needsReload() || creationUncertain()"
+            >
+              @if (saving()) {
+                Salvando...
+              } @else {
+                {{ id ? 'Salvar alterações' : 'Cadastrar produto' }}
+              }
+            </button>
+            <a class="button button--quiet" routerLink="/produtos">Cancelar</a>
+          </div>
+        </fieldset>
+      </form>
+
+      @if (product(); as current) {
+        <aside class="panel stock-panel" aria-label="Saldo em estoque">
+          <h2 class="section-heading">Saldo em estoque</h2>
+          <p class="balance-display">{{ current.balance | number }} <span>unidades</span></p>
+          <p class="field-hint">A impressão de uma nota atualiza este saldo.</p>
+          <button
+            class="button button--secondary"
+            type="button"
+            (click)="toggleAdjustment()"
+            [disabled]="saving() || adjusting() || needsReload()"
+            [attr.aria-expanded]="adjustmentOpen()"
+            aria-controls="stock-adjustment"
+          >
+            {{ adjustmentOpen() ? 'Cancelar ajuste' : 'Ajustar saldo' }}
+          </button>
+          @if (adjustmentOpen()) {
+            <form
+              id="stock-adjustment"
+              class="adjustment-form"
+              [formGroup]="adjustmentForm"
+              (ngSubmit)="adjust()"
+            >
+              <fieldset [disabled]="saving() || adjusting() || needsReload()">
+                <div class="field">
+                  <label for="adjustment-balance">Novo saldo</label>
+                  <input
+                    id="adjustment-balance"
+                    class="input"
+                    formControlName="balance"
+                    type="number"
+                    min="0"
+                    [max]="integerMax"
+                    step="1"
+                    inputmode="numeric"
+                    [attr.aria-invalid]="!!adjustmentFieldError('balance')"
+                    aria-describedby="adjustment-balance-hint adjustment-balance-error"
+                  />
+                  <p id="adjustment-balance-hint" class="field-hint">
+                    Informe o saldo final, não a quantidade a adicionar.
+                  </p>
+                  <p id="adjustment-balance-error" class="field-error">
+                    {{ adjustmentFieldError('balance') }}
+                  </p>
+                </div>
+                <div class="field">
+                  <label for="adjustment-reason">Motivo do ajuste</label>
+                  <textarea
+                    id="adjustment-reason"
+                    class="input"
+                    formControlName="reason"
+                    maxlength="200"
+                    rows="3"
+                    [attr.aria-invalid]="!!adjustmentFieldError('reason')"
+                    aria-describedby="adjustment-reason-error"
+                  ></textarea>
+                  <p id="adjustment-reason-error" class="field-error">
+                    {{ adjustmentFieldError('reason') }}
+                  </p>
+                </div>
+                <button
+                  class="button button--primary"
+                  type="submit"
+                  [disabled]="adjusting() || saving() || needsReload()"
+                >
+                  {{ adjusting() ? 'Atualizando...' : 'Confirmar ajuste' }}
+                </button>
+              </fieldset>
+            </form>
+          }
+        </aside>
+      } @else {
+        <aside class="form-note">
+          <app-icon name="box" />
+          <h2>Código único, estoque organizado.</h2>
+          <p>
+            Cada produto deve ter um código diferente. O saldo pode começar em zero e ser ajustado
+            depois.
+          </p>
+        </aside>
+      }
+    </div>
+  }
+</section>

@@ -1,0 +1,158 @@
+<div class="page invoice-page">
+  <div class="no-print">
+    <a class="back-link" routerLink="/notas"><app-icon name="arrow-left" /> Voltar para notas</a>
+    <app-page-header
+      title="Detalhes da nota"
+      description="Confira os itens e a situação da nota."
+    />
+  </div>
+
+  @if (loading() && !invoice()) {
+    <app-state kind="loading" title="Carregando nota" message="Consultando os dados da nota." />
+  } @else if (!invoice()) {
+    <app-state kind="error" title="Não foi possível carregar a nota" [message]="errorMessage()">
+      <button type="button" class="button button--secondary" (click)="refresh()">
+        <app-icon name="refresh" /> Tentar novamente
+      </button>
+    </app-state>
+  }
+
+  @if (invoice(); as currentInvoice) {
+    <div class="feedback no-print" aria-live="polite" aria-atomic="true">
+      @if (errorMessage()) {
+        <div class="notice notice--error" role="alert">
+          <app-icon name="alert" /> {{ errorMessage() }}
+        </div>
+      }
+      @if (notice()) {
+        <div
+          class="notice"
+          [class.notice--success]="stateKnown() && currentInvoice.status === 'Closed'"
+        >
+          {{ notice() }}
+        </div>
+      }
+      @if (recovering() || loading()) {
+        <div class="notice">
+          <span class="spinner" aria-hidden="true"></span> Consultando a situação atual da nota…
+        </div>
+      }
+    </div>
+
+    @if (!stateKnown() && !pending() && !loading()) {
+      <div class="unconfirmed no-print">
+        <p>
+          A impressão está indisponível até confirmar a situação atual. Os dados abaixo são da
+          última consulta.
+        </p>
+        <button type="button" class="button button--secondary" (click)="refresh()">
+          <app-icon name="refresh" /> Consultar novamente
+        </button>
+      </div>
+    }
+
+    <article class="print-document panel" aria-label="Dados da nota">
+      <header class="document-heading">
+        <div class="invoice-number">
+          <span class="document-label">Nota</span>
+          <h2>{{ currentInvoice.number | number: '1.0-0' }}</h2>
+        </div>
+        <div class="document-meta">
+          <div>
+            <span class="document-label">Situação</span>
+            @if (stateKnown()) {
+              <app-invoice-status [status]="currentInvoice.status" />
+            } @else {
+              <span class="muted">A confirmar</span>
+            }
+          </div>
+          <div>
+            <span class="document-label">Criada em</span>
+            <time [attr.datetime]="currentInvoice.createdAt">{{
+              currentInvoice.createdAt | date: 'dd/MM/yyyy, HH:mm'
+            }}</time>
+          </div>
+          @if (currentInvoice.closedAt) {
+            <div>
+              <span class="document-label">Fechada em</span>
+              <time [attr.datetime]="currentInvoice.closedAt">{{
+                currentInvoice.closedAt | date: 'dd/MM/yyyy, HH:mm'
+              }}</time>
+            </div>
+          }
+        </div>
+      </header>
+
+      <div class="document-items-title">
+        <h3>Itens da nota</h3>
+        <span class="muted"
+          >{{ currentInvoice.items.length }}
+          {{ currentInvoice.items.length === 1 ? 'produto' : 'produtos' }}</span
+        >
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Código</th>
+              <th scope="col">Descrição</th>
+              <th scope="col" class="numeric">Quantidade</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of currentInvoice.items; track item.id) {
+              <tr>
+                <td class="code">{{ item.productCode }}</td>
+                <td>{{ item.productDescription }}</td>
+                <td class="numeric">{{ item.quantity | number: '1.0-0' }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row" colspan="2">Quantidade total</th>
+              <td class="numeric">{{ totalQuantity() | number: '1.0-0' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </article>
+
+    <section class="print-actions no-print" aria-label="Impressão da nota">
+      @if (currentInvoice.status === 'Open') {
+        <div class="print-explanation">
+          <h3>{{ pending() ? 'Processando impressão' : 'Imprimir e fechar nota' }}</h3>
+          <p>
+            Ao imprimir, o estoque será atualizado e a nota será fechada. Cancelar o diálogo do
+            navegador não desfaz essa operação.
+          </p>
+        </div>
+        <button
+          type="button"
+          class="button button--primary"
+          [disabled]="!canPrint()"
+          [attr.aria-busy]="pending()"
+          (click)="print()"
+        >
+          @if (pending()) {
+            <span class="spinner" aria-hidden="true"></span>
+            {{ recovering() ? 'Confirmando situação…' : 'Imprimindo…' }}
+          } @else {
+            <app-icon name="print" /> Imprimir nota
+          }
+        </button>
+      } @else {
+        <div class="closed-message">
+          <app-icon name="check" />
+          <div>
+            <h3>Nota fechada</h3>
+            <p>A baixa de estoque foi concluída. Esta nota está disponível para consulta.</p>
+          </div>
+        </div>
+        <a class="button button--secondary" routerLink="/notas"
+          >Voltar para notas <app-icon name="arrow-right"
+        /></a>
+      }
+    </section>
+  }
+</div>
